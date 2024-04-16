@@ -18,7 +18,21 @@ func main() {
 	}()
 
 	logger.Info("Welcome to Para!")
-	api.Init()
+	server, err := api.Init()
+	if err != nil {
+		logger.Errorf("failed to initialize server: %v", err)
+		exitCode = 1
+		return
+	}
+
+	err = server.Start()
+
+	if err != nil {
+		logger.Errorf("failed to start server: %v", err)
+		exitCode = 1
+		return
+	}
+	//defer server.Shutdown(context.WithCancel(context.Background(), os.Exit(exitCode))b
 }
 
 func recoverPanic() {
