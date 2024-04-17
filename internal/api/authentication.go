@@ -2,7 +2,15 @@ package api
 
 import (
 	"net/http"
+	"strings"
+	"errors"
+
+	"github.com/gorilla/sessions"
 )
+
+type Authentivator struct {
+
+}
 
 type SessionCache struct {
 }
@@ -14,9 +22,29 @@ func (s *SessionCache) GetSession(w *http.ResponseWriter,r *http.Request) {
  func authenticateHandler() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			//next.ServeHTTP();
+			next.ServeHTTP(w, r)
+			return 
+			if strings.HasPrefix(r.URL.Path, "/scripts/") ||
+				strings.HasPrefix(r.URL.Path, "/favicon") ||
+				strings.HasPrefix(r.URL.Path, "/assets") {
+				logger.Debugf("Skipping authentication for public path: %s", r.URL.Path)
+				next.ServeHTTP(w, r)
+				return
+			}
+			
+			logger.Debugf("r.URL.Path: %s", r.URL.Path)
+			//logger.Debug("Authentication check...")
+			//logger.Debugf("r.URL.Path: %s", r.URL.Path)
+			
+			if strings.HasPrefix(r.URL.Path, "/login") {
+				logger.Debugf("Skipping authentication for login page: %s", r.URL.Path)
+				next.ServeHTTP(w, r)
+				return
+			}
+			
 			w.Header().Add("WWW-Authenticate", "FormBased")
 			w.WriteHeader(http.StatusUnauthorized)
+			http.Redirect(w, r, "/login", http.StatusFound)
 			return
 			// c := config.GetInstance()
 			//
@@ -87,7 +115,7 @@ func (s *SessionCache) GetSession(w *http.ResponseWriter,r *http.Request) {
 			// 		return
 			// 	}
 			// }
-			//
+			//j
 			// ctx = session.SetCurrentUserID(ctx, userID)
 			//
 			// r = r.WithContext(ctx)
@@ -96,4 +124,16 @@ func (s *SessionCache) GetSession(w *http.ResponseWriter,r *http.Request) {
 		})
 	}
 }
-    
+
+func Authenticate(w http.ResponseWriter, r *http.Request, username, password string) error {
+	//TOGO: check if session exists
+	if username != "admin" || password != "admin" {
+		return errors.New("invalid credentials")
+	}
+
+	store := sessions.NewCookieStore([]byte("something-very-secret"))
+	newSession := sessions.NewSession(store, username)
+	err := newSession.Save(r, w)
+
+	return err
+}

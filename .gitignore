@@ -22,5 +22,4 @@ main
 go.work
 
 # build folder
-build/
-output/
+tmp/
