@@ -2,9 +2,14 @@ package main
 
 import (
 	"os"
+	"os/user"
+	"path"
+	"path/filepath"
 	"runtime/debug"
-	"github.com/lembata/para/pkg/logger"
+
 	"github.com/lembata/para/internal/api"
+	"github.com/lembata/para/pkg/database"
+	"github.com/lembata/para/pkg/logger"
 )
 
 var exitCode = 0;
@@ -18,14 +23,37 @@ func main() {
 	}()
 
 	logger.Info("Welcome to Para!")
+	configDir := getDefaultConfigDir()
+
+	logger.Infof("Using config directory: %s", configDir)
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		os.Mkdir(configDir, 0755)
+	}
+
+	dbPath := path.Join(configDir, "para.sqlite")
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		os.Create(dbPath)
+	}
+
 	server, err := api.Init()
+
 	if err != nil {
 		logger.Errorf("failed to initialize server: %v", err)
 		exitCode = 1
 		return
 	}
 
-	err = server.Start()
+	database := database.NewDatabase()
+	err = database.Open(dbPath)
+	if err != nil {
+		exitCode = 1
+		logger.Errorf("failed to open database: %v", err)
+		return
+	}
+
+	defer database.Close()
+
+	err = server.Start();
 
 	if err != nil {
 		logger.Errorf("failed to start server: %v", err)
@@ -40,4 +68,14 @@ func recoverPanic() {
 		exitCode = 1
 		logger.Errorf("panic: %v\n%s", err, debug.Stack())
 	}
+}
+
+func getDefaultConfigDir() string {
+	currentUser, err := user.Current()
+
+	if err != nil {
+		panic(err)
+	}
+
+	return filepath.Join(currentUser.HomeDir, ".config/para")
 }

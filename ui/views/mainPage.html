@@ -10,7 +10,7 @@
     <script src="/styles/style.css" type="stylesheet"></script>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/styles/style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+    <!-- <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" /> -->
     <title>Para</title>
 </head>
 
@@ -23,7 +23,7 @@
         <!-- template "sidemenu" }} -->
         <!-- built files will be auto injected -->
         {{ block "sidebar" .Sidebar }} {{ end }}
-        {{ block "content-page" . }} {{ end }}
+        {{ block "page-container" . }} {{ end }}
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
 </body>
@@ -31,10 +31,10 @@
 </html>
 {{ end }}
 
-{{ define "content-page" }}
+{{ define "page-container" }}
+<div id="page-container" class="p-4 sm:ml-64">
     Content Page
     {{ . }}
-    </div>
 </div>
 {{ end }}
 

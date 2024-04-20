@@ -10,8 +10,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/lembata/para/pkg/logger"
-
-
 )
 
 var logger = log.NewLogger()
@@ -20,6 +18,11 @@ type Server struct {
 	http.Server
 	DashboardService
 	LoginService
+}
+
+type SidebarButton struct {
+	Icon string
+	Text string
 }
 
 type DashboardService struct {
@@ -35,6 +38,12 @@ type TempDash struct {
 type LoginService struct {
 	//loginTemplate *template.Template
 	templates Templates
+}
+
+
+type Page struct {
+	Body string
+	Sidebar []SidebarButton
 }
 
 func Init() (*Server, error) {
@@ -127,14 +136,11 @@ func (s *Server) addStaticResponses() http.Handler {
 	return nil
 }
 
-type Page struct {
-	Body string
-}	
 
 func (s *DashboardService) ShowDashboard(w http.ResponseWriter, r *http.Request) {
-	var buffer = bytes.Buffer{ }
+	var buffer = bytes.Buffer{}
 	//buffer.Grow(1024 * 20);
-    bufferWriter := bufio.NewWriter(&buffer)
+	bufferWriter := bufio.NewWriter(&buffer)
 	//bufferWriter.Write([]byte("Hello, World!"))
 
 	err := s.templates.Render(bufferWriter, "dashboard", nil)
@@ -147,13 +153,12 @@ func (s *DashboardService) ShowDashboard(w http.ResponseWriter, r *http.Request)
 	}
 
 	logger.Debugf("Buffer length: %v", buffer.Len())
-	
-	page := Page{ Body: buffer.String() }
+
+	page := Page{Body: buffer.String()}
 
 	logger.Debugf("page: %v", page)
 
 	err = s.templates.Render(w, "mainPage", page)
-
 
 	if err != nil {
 		logger.Errorf("failed excutetempate: %v", err)
