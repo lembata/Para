@@ -1,7 +1,8 @@
 package api
 
 import (
-	"net/http"
+	"io"
+	//"net/http"
 	"html/template"
 )
 
@@ -10,13 +11,18 @@ type Templates struct {
 	templates *template.Template
 }
 
-func (t *Templates) Render(w http.ResponseWriter, name string, data interface{}) error {
+// func (t *Templates) Render(w http.ResponseWriter, name string, data interface{}) error {
+// 	return t.templates.ExecuteTemplate(w, name, data)
+// }
+
+func (t *Templates) Render(w io.Writer, name string, data interface{}) error {
 	return t.templates.ExecuteTemplate(w, name, data)
 }
 
+
 func (t *Templates) LoadTemplates() error {
 
-	temp, err := template.ParseGlob("web/templates/*.html")
+	temp, err := template.ParseGlob("ui/views/*.html")
 
 	if err != nil {
 		return err

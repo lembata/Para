@@ -1,13 +1,17 @@
 package api
 
 import (
+	//"html/template"
+	"bufio"
+	"bytes"
 	"net/http"
-	"html/template"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/lembata/para/pkg/logger"
+
+
 )
 
 var logger = log.NewLogger()
@@ -19,14 +23,14 @@ type Server struct {
 }
 
 type DashboardService struct {
-	dashboardTemplate *template.Template
+	//dashboardTemplate *template.Template
+	templates Templates
 }
 
 type TempDash struct {
-	Header string
+	Header    string
 	Paragraph string
 }
-
 
 type LoginService struct {
 	//loginTemplate *template.Template
@@ -42,19 +46,23 @@ func Init() (*Server, error) {
 	templates := Templates{}
 	err := templates.LoadTemplates()
 
-	
+	if err != nil {
+		logger.Errorf("failed to load templates: %v", err)
+		return nil, err
+	}
 
 	server := Server{
 		Server: http.Server{
 			Addr:    address,
 			Handler: router,
 		},
-		DashboardService: DashboardService{},
-		LoginService: LoginService{ 
-			templates: Templates {},
+		DashboardService: DashboardService{
+			templates: templates,
+		},
+		LoginService: LoginService{
+			templates: templates,
 		},
 	}
-
 
 	server.LoginService.templates.LoadTemplates()
 
@@ -64,6 +72,10 @@ func Init() (*Server, error) {
 	router.Use(authenticateHandler())
 	//TODO: auth middleware
 	//TODO: controllers and routes
+
+	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/dashboard", http.StatusFound)
+	})
 	router.Mount("/dashboard", server.dashBoardRouter())
 	router.Mount("/login", server.loginRouter())
 	fs := http.FileServer(http.Dir("web/public"))
@@ -115,24 +127,40 @@ func (s *Server) addStaticResponses() http.Handler {
 	return nil
 }
 
+type Page struct {
+	Body string
+}	
+
 func (s *DashboardService) ShowDashboard(w http.ResponseWriter, r *http.Request) {
-	if s.dashboardTemplate == nil {
-		t, err := template.New("index").ParseFiles("web/index.html")
-		if err != nil {
-			logger.Errorf("failed to parse template: %v", err)
-			return
-		}
+	var buffer = bytes.Buffer{ }
+	//buffer.Grow(1024 * 20);
+    bufferWriter := bufio.NewWriter(&buffer)
+	//bufferWriter.Write([]byte("Hello, World!"))
 
-		s.dashboardTemplate = t
-	}
-
-	err := s.dashboardTemplate.Execute(w,
-		TempDash{ Header: "Dashboard", Paragraph: "Welcome to the dashboard" })
+	err := s.templates.Render(bufferWriter, "dashboard", nil)
+	err = bufferWriter.Flush()
+	//var err error
 
 	if err != nil {
 		logger.Errorf("failed excutetempate: %v", err)
 		return
 	}
+
+	logger.Debugf("Buffer length: %v", buffer.Len())
+	
+	page := Page{ Body: buffer.String() }
+
+	logger.Debugf("page: %v", page)
+
+	err = s.templates.Render(w, "mainPage", page)
+
+
+	if err != nil {
+		logger.Errorf("failed excutetempate: %v", err)
+		return
+	}
+
+	logger.Info("dashboard page served")
 }
 
 func (s *LoginService) ShowLoginPage(w http.ResponseWriter, r *http.Request) {
@@ -145,7 +173,6 @@ func (s *LoginService) ShowLoginPage(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info("Login page served")
 }
-
 
 func (s *LoginService) Login(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
@@ -163,21 +190,20 @@ func (s *LoginService) Login(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debugf("form: %v", r.Form)
 	err = Authenticate(w, r, r.Form.Get("usetname"), r.Form.Get("password"))
-	
+
 	if err != nil {
 		logger.Errorf("failed to authenticate: %v", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	var returnUrl string 
+	var returnUrl string
 
 	if r.URL.Query().Has("returnURL") {
 		returnUrl = r.URL.Query().Get("returnURL")
 	} else {
 		returnUrl = "/dashboard"
 	}
-	
 
 	w.Header().Set("HX-Redirect", returnUrl)
 

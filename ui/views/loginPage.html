@@ -1,0 +1,52 @@
+{{ define "login" }}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/scripts/htmx.min.js"></script>
+    <script src="/styles/style.css" type="stylesheet"></script>
+    <link rel="stylesheet" href="/styles/style.css">
+    <title>Log in</title>
+</head>
+
+<body class="main-body">
+    <div class="login-container">
+        <div class="login-form-outer-container"
+                    >
+            <div class="login-form-container">
+                <h1 class="login-heading">
+                    Sign in to your account
+                </h1>
+                <form class="login-form" 
+                    hx-post="/login" 
+                    hx-target=".login-form .error-msg"
+                    hx-target-400="#error-msg"
+                    hx-target-401="#error-msg"
+                    hx-swap="innerHTML">
+                    <div>
+                        <label for="username">
+                            Your email
+                        </label>
+                        <input type="text" name="username" placeholder="username" required="" />
+                    </div>
+                    <div>
+                        <label for="password">
+                            Password
+                        </label>
+                        <input type="password" name="password" id="password" placeholder="••••••••" required="">
+                    </div>
+                    <button type="submit">
+                        Sign in
+                    </button>
+                    <span class="error-msg" hx-swap-oob="true">Error message goes here</span>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
+{{end}}
