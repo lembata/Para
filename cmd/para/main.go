@@ -26,9 +26,10 @@ func main() {
 	configDir := getDefaultConfigDir()
 
 	logger.Infof("Using config directory: %s", configDir)
+
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
 		os.Mkdir(configDir, 0755)
-	}
+}
 
 	dbPath := path.Join(configDir, "para.sqlite")
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {

@@ -5,19 +5,20 @@ import (
 )
 
 type LoginService struct {
-	templates Templates
+	//templates Templates
 }
 
 
 func (s *LoginService) ShowLoginPage(w http.ResponseWriter, r *http.Request) {
-	err := s.templates.Render(w, "login", nil)
-
-	if err != nil {
-		logger.Errorf("failed excutetempate: %v", err)
-		return
-	}
-
-	logger.Info("Login page served")
+	return
+	// err := s.templates.Render(w, "login", nil)
+	//
+	// if err != nil {
+	// 	logger.Errorf("failed excutetempate: %v", err)
+	// 	return
+	// }
+	//
+	// logger.Info("Login page served")
 }
 
 func (s *LoginService) Login(w http.ResponseWriter, r *http.Request) {

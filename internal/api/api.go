@@ -2,14 +2,19 @@ package api
 
 import (
 	//"html/template"
-	"bufio"
 	"bytes"
+	"io/fs"
 	"net/http"
+	"path"
+	"time"
+
+	"github.com/lembata/para/pkg/logger"
+	"github.com/lembata/para/ui"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-
-	"github.com/lembata/para/pkg/logger"
+	"github.com/go-chi/httplog"
+	"github.com/vearutop/statigz"
 )
 
 var logger = log.NewLogger()
@@ -25,20 +30,13 @@ type SidebarButton struct {
 	Text string
 }
 
-type DashboardService struct {
-	//dashboardTemplate *template.Template
-	templates Templates
-}
-
 type TempDash struct {
 	Header    string
 	Paragraph string
 }
 
-
-
 type Page struct {
-	Body string
+	Body    string
 	Sidebar []SidebarButton
 }
 
@@ -48,43 +46,90 @@ func Init() (*Server, error) {
 	address := "localhost:8080"
 	router := chi.NewRouter()
 
-	templates := Templates{}
-	err := templates.LoadTemplates()
+	//var templates Templates
+	//err := templates.LoadTemplates()
 
-	if err != nil {
-		logger.Errorf("failed to load templates: %v", err)
-		return nil, err
-	}
+	// if err != nil {
+	// 	logger.Errorf("failed to load templates: %v", err)
+	// 	return nil, err
+	// }
 
 	server := Server{
 		Server: http.Server{
 			Addr:    address,
 			Handler: router,
 		},
-		DashboardService: DashboardService{
-			templates: templates,
-		},
-		LoginService: LoginService{
-			templates: templates,
-		},
+		DashboardService: DashboardService{},
+		LoginService:     LoginService{},
 	}
 
-	server.LoginService.templates.LoadTemplates()
+	//server.LoginService.templates.LoadTemplates()
 
+	router.Use(middleware.Heartbeat("/healthz"))
 	router.Use(middleware.Logger)
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Recoverer)
 	router.Use(authenticateHandler())
+
+	httpLogger := httplog.NewLogger("Stash", httplog.Options{
+		Concise: true,
+	})
+	router.Use(httplog.RequestLogger(httpLogger))
+
 	//TODO: auth middleware
 	//TODO: controllers and routes
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/dashboard", http.StatusFound)
 	})
-	router.Mount("/dashboard", server.dashBoardRouter())
-	router.Mount("/login", server.loginRouter())
-	fs := http.FileServer(http.Dir("web/public"))
-	router.Handle("/*", http.StripPrefix("/", fs))
+	router.Mount("/api/dashboard", server.dashBoardRouter())
+	router.Mount("/api/login", server.loginRouter())
+
+	//customUILocation := ""
+	staticUI := statigz.FileServer(ui.UIBox.(fs.ReadDirFS))
+
+	router.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
+		ext := path.Ext(r.URL.Path)
+
+		if ext == ".html" || ext == "" {
+			//themeColor := cfg.GetThemeColor()
+			data, err := fs.ReadFile(ui.UIBox, "index.html")
+			if err != nil {
+				panic(err)
+			}
+			//indexHtml := string(data)
+			//prefix := getProxyPrefix(r)
+			//indexHtml = strings.ReplaceAll(indexHtml, "%COLOR%", themeColor)
+			//indexHtml = strings.Replace(indexHtml, `<base href="/"`, fmt.Sprintf(`<base href="%s/"`, prefix), 1)
+
+			w.Header().Set("Content-Type", "text/html")
+			//setPageSecurityHeaders(w, r, pluginCache.ListPlugins())
+
+			// if r.URL.Query().Has("t") {
+			// 	w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
+			// } else {
+			// 	w.Header().Set("Cache-Control", "no-cache")
+			// }
+				
+			w.Header().Set("Cache-Control", "no-cache")
+
+			//w.Header().Set("ETag", GenerateETag(data))
+
+			http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(data))
+
+		} else {
+			isStatic, _ := path.Match("/assets/*", r.URL.Path)
+			if isStatic {
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			} else {
+				w.Header().Set("Cache-Control", "no-cache")
+			}
+
+			staticUI.ServeHTTP(w, r)
+		}
+	})
+	//fs := http.FileServer(http.Dir("ui/dist"))
+	//router.Handle("/", fs.ServeHTTP(r, w))// http.StripPrefix("/", fs))
 
 	return &server, nil
 }
@@ -131,36 +176,3 @@ func (s *Server) addStaticResponses() http.Handler {
 
 	return nil
 }
-
-
-func (s *DashboardService) ShowDashboard(w http.ResponseWriter, r *http.Request) {
-	var buffer = bytes.Buffer{}
-	//buffer.Grow(1024 * 20);
-	bufferWriter := bufio.NewWriter(&buffer)
-	//bufferWriter.Write([]byte("Hello, World!"))
-
-	err := s.templates.Render(bufferWriter, "dashboard", nil)
-	err = bufferWriter.Flush()
-	//var err error
-
-	if err != nil {
-		logger.Errorf("failed excutetempate: %v", err)
-		return
-	}
-
-	logger.Debugf("Buffer length: %v", buffer.Len())
-
-	page := Page{Body: buffer.String()}
-
-	logger.Debugf("page: %v", page)
-
-	err = s.templates.Render(w, "mainPage", page)
-
-	if err != nil {
-		logger.Errorf("failed excutetempate: %v", err)
-		return
-	}
-
-	logger.Info("dashboard page served")
-}
-

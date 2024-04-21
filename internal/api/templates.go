@@ -21,7 +21,7 @@ func (t *Templates) Render(w io.Writer, name string, data interface{}) error {
 
 
 func (t *Templates) LoadTemplates() error {
-
+	return nil
 	temp, err := template.ParseGlob("ui/views/*.html")
 
 	if err != nil {

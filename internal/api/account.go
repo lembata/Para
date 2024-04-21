@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/hcl/hcl/strconv"
 	"github.com/lembata/para/internal/enities"
 	"github.com/lembata/para/pkg/database"
 )
@@ -15,7 +14,7 @@ type AccountService struct {
 }
 
 func (s *AccountService) CreateAccount(w http.ResponseWriter, r *http.Request) {
-	initialAmount, err := strconv.ParseFloat(r.Form.Get("initial-balance", 64))
+	initialAmount, err := strconv.ParseFloat(r.Form.Get("initial-balance"), 64)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -23,7 +22,8 @@ func (s *AccountService) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newAccount := enities.Account{
+	//newAccount := enities.Account{
+	_ = enities.Account{
 		Id: 0,
 		Name: r.Form.Get("name"),
 		CreateAt: time.Now(),
