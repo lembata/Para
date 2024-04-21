@@ -124,6 +124,21 @@ func (db *Database) RunAllMigrations() error {
 	return nil
 }
 
+func (db *Database) Exec(query string, args ...any)  error {
+	db.lock()
+	defer db.unlock()
+
+	result, err := db.db.Exec(query, args...)
+
+	if err != nil {
+		logger.Errorf("error while executing query: %v", err)
+		return err
+	}
+
+	logger.Infof("result: %v", result)
+	return nil
+}
+
 // Locking db for writing
 func (db *Database) lock() {
 	db.lockChan <- struct{}{}
