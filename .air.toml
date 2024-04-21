@@ -7,8 +7,9 @@ tmp_dir = "tmp"
   bin = "./tmp/main"
   cmd = "go build -o ./tmp/main ./cmd/para/main.go "
   delay = 1000
-  exclude_dir = ["assets", "tmp", "vendor", "testdata", "ui"]
-  exclude_file = []
+  exclude_dir = ["assets", "tmp", "vendor", "testdata",
+    "ui/app/src", "ui/app/node_modules", "ui/app/public"]
+  exclude_file = [ "ui/*" ]
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
   follow_symlink = false

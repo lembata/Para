@@ -12,8 +12,8 @@ import (
 	"github.com/lembata/para/pkg/logger"
 )
 
-var exitCode = 0;
-var logger = log.NewLogger() 
+var exitCode = 0
+var logger = log.NewLogger()
 
 func main() {
 	defer func() {
@@ -29,7 +29,7 @@ func main() {
 
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
 		os.Mkdir(configDir, 0755)
-}
+	}
 
 	dbPath := path.Join(configDir, "para.sqlite")
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
@@ -54,7 +54,7 @@ func main() {
 
 	defer database.Close()
 
-	err = server.Start();
+	err = server.Start()
 
 	if err != nil {
 		logger.Errorf("failed to start server: %v", err)

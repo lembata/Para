@@ -71,17 +71,16 @@ func Init() (*Server, error) {
 	router.Use(middleware.Recoverer)
 	router.Use(authenticateHandler())
 
-	httpLogger := httplog.NewLogger("Stash", httplog.Options{
-		Concise: true,
-	})
+	httpLogger := log.NewHttpLogger()
+	// httplog.NewLogger("Para", httplog.Options{
+	// 	Concise: true,
+	// })
+
 	router.Use(httplog.RequestLogger(httpLogger))
 
-	//TODO: auth middleware
-	//TODO: controllers and routes
-
-	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/dashboard", http.StatusFound)
-	})
+	// router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	// 	http.Redirect(w, r, "/dashboard", http.StatusFound)
+	// })
 	router.Mount("/api/dashboard", server.dashBoardRouter())
 	router.Mount("/api/login", server.loginRouter())
 
@@ -118,12 +117,13 @@ func Init() (*Server, error) {
 			http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(data))
 
 		} else {
-			isStatic, _ := path.Match("/assets/*", r.URL.Path)
-			if isStatic {
-				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-			} else {
-				w.Header().Set("Cache-Control", "no-cache")
-			}
+			w.Header().Set("Cache-Control", "no-cache")
+			// isStatic, _ := path.Match("/assets/*", r.URL.Path)
+			// if isStatic {
+			// 	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			// } else {
+			// 	w.Header().Set("Cache-Control", "no-cache")
+			// }
 
 			staticUI.ServeHTTP(w, r)
 		}

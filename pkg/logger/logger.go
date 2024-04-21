@@ -34,6 +34,22 @@ func NewLogger() *Logger {
 	return logger
 }
 
+func NewHttpLogger() zerolog.Logger {
+	return zerolog.New(zerolog.
+			ConsoleWriter{
+				Out: os.Stderr,
+				TimeFormat: time.RFC3339,
+				FormatCaller: func(i interface{}) string {
+					return "[" + filepath.Base(fmt.Sprintf("%s", i)) + "]"
+				},
+			}).
+			Level(zerolog.TraceLevel).
+			With().
+			Timestamp().
+			CallerWithSkipFrameCount(3).
+			Logger();
+}
+
 func (log *Logger) WithField(key string, value string) *Logger {
 	new_logger := log.logger.
 		With().
