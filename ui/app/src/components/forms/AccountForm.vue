@@ -1,13 +1,13 @@
-<script>
-import FormInput from './inputs/TextInput.vue'
+<script setup>
+import TextInput from './inputs/TextInput.vue'
 </script>
 
 <template>
   <form>
     <label class="mb-2">Mandatory fields:</label>
     <hr class="p-3" />
-    <div style="width:25px;height: 25px; background: red;"></div>
-    <FormInput text="Account Name" name="name" > </FormInput>
+    <TextInput text="Account Name" name="accountName" placeholder="4d math"> </TextInput>
+    <!--
     <div style="width:25px;height: 25px; background: red;"></div>
 
     <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name"> Account
@@ -69,7 +69,9 @@ import FormInput from './inputs/TextInput.vue'
     </label>
     <textarea
       class="mb-3 block w-full appearance-none rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none"
-      id="grid-first-name" type="text"> </textarea>
+      id="grid-first-name" type="text">
+    </textarea>
+    -->
   </form>
 </template>
 

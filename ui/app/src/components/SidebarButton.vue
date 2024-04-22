@@ -1,8 +1,10 @@
 <script>
 import { RouterLink } from 'vue-router'
+
 export default {
   props: ['href', 'text'],
   data(props) {
+    console.log('SidebarButton.vue data', props);
     return {
       href: props.href,
       text: props.text,
