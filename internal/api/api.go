@@ -12,6 +12,7 @@ import (
 	"github.com/lembata/para/ui"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httplog"
 	"github.com/vearutop/statigz"
@@ -23,7 +24,10 @@ type Server struct {
 	http.Server
 	DashboardService
 	LoginService
+	AccountService
 }
+
+
 
 type SidebarButton struct {
 	Icon string
@@ -46,14 +50,6 @@ func Init() (*Server, error) {
 	address := "localhost:8080"
 	router := chi.NewRouter()
 
-	//var templates Templates
-	//err := templates.LoadTemplates()
-
-	// if err != nil {
-	// 	logger.Errorf("failed to load templates: %v", err)
-	// 	return nil, err
-	// }
-
 	server := Server{
 		Server: http.Server{
 			Addr:    address,
@@ -64,6 +60,15 @@ func Init() (*Server, error) {
 	}
 
 	//server.LoginService.templates.LoadTemplates()
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"https://*", "http://*"},
+		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
 
 	router.Use(middleware.Heartbeat("/healthz"))
 	router.Use(middleware.Logger)
@@ -83,6 +88,7 @@ func Init() (*Server, error) {
 	// })
 	router.Mount("/api/dashboard", server.dashBoardRouter())
 	router.Mount("/api/login", server.loginRouter())
+	router.Mount("/api/accounts", server.accountRouter())
 
 	//customUILocation := ""
 	staticUI := statigz.FileServer(ui.UIBox.(fs.ReadDirFS))
@@ -109,7 +115,7 @@ func Init() (*Server, error) {
 			// } else {
 			// 	w.Header().Set("Cache-Control", "no-cache")
 			// }
-				
+
 			w.Header().Set("Cache-Control", "no-cache")
 
 			//w.Header().Set("ETag", GenerateETag(data))
@@ -157,6 +163,13 @@ func (s *Server) loginRouter() http.Handler {
 	//r.Use(AdminOnly)
 	r.Get("/", s.LoginService.ShowLoginPage)
 	r.Post("/", s.LoginService.Login)
+	return r
+}
+
+func (s *Server) accountRouter() http.Handler {
+	r := chi.NewRouter()
+	//r.Use(AdminOnly)
+	r.Post("/add", s.AccountService.CreateAccount)
 	return r
 }
 

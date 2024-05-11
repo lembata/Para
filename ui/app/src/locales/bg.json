@@ -1,0 +1,13 @@
+{
+	"pages": {
+		"dashboard": "Дашбоард",
+		"accounts": "Сметки",
+		"settings": "Настройки"
+	},
+	"messages" : {
+		"hello": "Здравей!"
+	},
+	"forms" : {
+		"manditoryFields" : "Задължителни полета" 
+	}
+}

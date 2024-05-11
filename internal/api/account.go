@@ -14,6 +14,7 @@ type AccountService struct {
 }
 
 func (s *AccountService) CreateAccount(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(2 * time.Second)
 	initialAmount, err := strconv.ParseFloat(r.Form.Get("initial-balance"), 64)
 
 	if err != nil {

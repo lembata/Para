@@ -1,0 +1,13 @@
+{
+	"pages": {
+		"dashboard": "Dashboard",
+		"accounts": "Accounts",
+		"settings": "Settings"
+	},
+	"messages" : {
+		"hello": "Hello!"
+	},
+	"forms" : {
+		"manditoryFields" : "Manditory Fields" 
+	}
+}

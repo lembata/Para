@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	github.com/go-chi/cors v1.2.1 // indirect
 	github.com/go-chi/httplog v0.3.2 // indirect
 	github.com/golang-migrate/migrate/v4 v4.17.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect

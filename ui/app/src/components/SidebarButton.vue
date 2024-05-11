@@ -1,21 +1,27 @@
 <script>
 import { RouterLink } from 'vue-router'
+//import { useAttrs } from 'vue';
 
 export default {
-  props: ['href', 'text'],
+  components: {
+    RouterLink
+  },
+  props: ['to', 'text'],
   data(props) {
-    console.log('SidebarButton.vue data', props);
+    //console.log('SidebarButton.vue data', props, ctx);//.attrs);
     return {
-      href: props.href,
       text: props.text,
+      to: props.to,
     }
+  },
+  setup() {
   }
 }
 </script>
 
 <template>
   <li>
-    <RouterLink :to="href" class="sidebar-btn">
+    <RouterLink :to="to" class="sidebar-btn">
       <slot name="icon" class="sidebar-icon"></slot>
       <span class="ms-3">{{ text }}</span>
     </ RouterLink>

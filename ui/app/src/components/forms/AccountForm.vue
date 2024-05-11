@@ -1,86 +1,95 @@
 <script setup>
+import { ref, defineEmits } from 'vue';
+import { useI18n } from 'vue-i18n';
 import TextInput from './inputs/TextInput.vue'
+import CurrencyInput from './inputs/CurrencyInput.vue'
+import NumberInput from './inputs/NumberInput.vue'
+import DateInput from './inputs/DateInput.vue'
+import Card from 'primevue/card';
+import Button from 'primevue/button';
+import ProgressSpinner from 'primevue/progressspinner';
+import API from '../../api/api.js';
+
+const { t } = useI18n();
+
+const accountName = ref('');
+const currency = ref('USD');
+const emit = defineEmits(['submit']);
+const working = ref(false);
+
+const submitForm = async () => {
+  //console.log('submitForm', working, accountName.value, currency.value);
+  if(working.value) return;
+
+  working.value = true;
+
+  await API.Accounts.add({ 
+    accountName: accountName.value,
+    currency: currency.value
+  });
+
+  working.value = false;
+}
 </script>
 
 <template>
   <form>
-    <label class="mb-2">Mandatory fields:</label>
-    <hr class="p-3" />
-    <TextInput text="Account Name" name="accountName" placeholder="4d math"> </TextInput>
-    <!--
-    <div style="width:25px;height: 25px; background: red;"></div>
-
-    <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name"> Account
-      Name </label>
-    <input
-      class="mb-3 block w-full appearance-none rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none"
-      id="grid-first-name" type="text" placeholder="Cash" />
-    <p class="hidden text-xs italic text-red-500">Please fill out this field.</p>
-    <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name">
-      Currency </label>
-    <div class="relative">
-      <select
-        class="block w-full appearance-none rounded border border-gray-200 bg-gray-200 px-4 py-3 pr-8 leading-tight text-gray-700 focus:border-gray-500 focus:bg-white focus:outline-none"
-        id="grid-state">
-        <option>Euro €</option>
-        <option>Dollars $</option>
-        <option>Bulgarian Lev лв.</option>
-      </select>
-      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-        <svg class="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-          <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-        </svg>
-      </div>
+    <div class="grid grid-cols-2 lg:grid-cols-1 gap-4">
+      <Card>
+        {{ accountName }}
+        <template #content>
+          <label class="mb-2"> {{ $t('forms.manditoryFields') }} zzz:</label>
+          <hr class="p-3" />
+          <TextInput v-model="accountName" text="forms.accountName" placeholder="form.accountNamePlaceholder">
+          </TextInput>
+          <CurrencyInput text="forms.currency" name="currency"> </CurrencyInput>
+        </template>
+      </Card>
+      <Card>
+        <template #content>
+          <label class="mb-2 mt-10">Optional fields:</label>
+          <hr class="p-3" />
+          <TextInput text="forms.IBAN" name="iban" placeholder="form.IBAN"> </TextInput>
+          <TextInput text="forms.BIC" name="bic" placeholder="form.BIC"> </TextInput>
+          <TextInput text="forms.accountNumber" name="accountNumber" placeholder="form.accountNumberPlaceHolder">
+          </TextInput>
+          <NumberInput text="forms.openingBalance" name="openingBalance" placeholder="1000" :minFractionDigits="2"/>
+          <DateInput text="forms.openingBalanceDate" name="openingBalanceDate" />
+          <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name">
+            Include
+            in net worth: </label>
+          <input
+            class="mb-3 block rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none"
+            id="grid-first-name" type="checkbox" />
+          <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name">
+            Notes:
+          </label>
+          <textarea
+            class="mb-3 block w-full appearance-none rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none"
+            id="grid-first-name" type="text">
+          </textarea>
+        </template>
+      </Card>
     </div>
-    <hr class="p-3" />
-    <label class="mb-2 mt-10">Optional fields:</label>
-    <hr class="p-3" />
-    <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name"> IBAN:
-    </label>
-    <input
-      class="mb-3 block w-full appearance-none rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none"
-      id="grid-first-name" type="text" placeholder="IBAN" />
-    <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name"> BIC:
-    </label>
-    <input
-      class="mb-3 block w-full appearance-none rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none"
-      id="grid-first-name" type="text" placeholder="BIC" />
-    <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name"> Account
-      Number: </label>
-    <input
-      class="mb-3 block w-full appearance-none rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none"
-      id="grid-first-name" type="text" placeholder="Account Number" />
-    <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name"> Opening
-      Balance: </label>
-    <input
-      class="mb-3 block w-full appearance-none rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none"
-      id="grid-first-name" type="number" placeholder="100" />
-    <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name"> Opening
-      balance date: </label>
-    <input
-      class="mb-3 block w-full appearance-none rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none"
-      id="grid-first-name" type="date" />
-    <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name"> Include
-      in net worth: </label>
-    <input
-      class="mb-3 block rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none"
-      id="grid-first-name" type="checkbox" />
-    <label class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" for="grid-first-name"> Notes:
-    </label>
-    <textarea
-      class="mb-3 block w-full appearance-none rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none"
-      id="grid-first-name" type="text">
-    </textarea>
-    -->
+    <Button @click="submitForm" type="button" :disabled="working">
+      <ProgressSpinner v-if="working" class="mr-2 w-4 h-4" strokeWidth="5" 
+        animationDuration=".5s" aria-label="Working" />
+      Save
+    </Button>
   </form>
 </template>
 
 <style>
 .form-label {
-  @apply mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700;
+  @apply mb-2 block text-xs font-bold uppercase tracking-wide text-gray-500;
 }
 
 .form-input {
-  @apply mb-3 block w-full appearance-none rounded border bg-gray-200 px-4 py-3 leading-tight text-gray-700 focus:bg-white focus:outline-none;
+  @apply mb-3 block w-full appearance-none rounded px-4 py-3 leading-tight;
+
+}
+
+.form-select {
+  @apply block w-full appearance-none rounded border border-gray-200 bg-gray-200 px-4 py-3 pr-8 leading-tight text-gray-700 focus:border-gray-500 focus:bg-white focus:outline-none;
 }
 </style>

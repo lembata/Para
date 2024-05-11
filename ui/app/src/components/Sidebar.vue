@@ -21,17 +21,17 @@ import SupportIcon from './icons/IconSupport.vue'
   <aside id="default-sidebar" class="sidebar-container transition-transform -translate-x-full" aria-label="Sidebar">
     <div class="sidebar">
       <ul class="space-y-2 font-medium">
-        <SidebarButton text="Dashboard" href="/">
+        <SidebarButton text="Dashboard" to="/">
           <template #icon>
             <DocumentationIcon />
           </template>
         </SidebarButton>
-        <SidebarButton text="Accounts" href="/accounts">
+        <SidebarButton text="Accounts" to="/accounts">
           <template #icon>
             <CommunityIcon />
           </template>
         </SidebarButton>
-        <SidebarButton text="Settings" href="/settings">
+        <SidebarButton text="Settings" to="/settings">
           <template #icon>
             <SupportIcon />
           </template>
