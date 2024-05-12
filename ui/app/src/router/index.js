@@ -20,6 +20,26 @@ const router = createRouter({
           name: 'accounts',
           component: () => import('@/views/AccountsView.vue')
         },
+        {
+          path: '/accounts/add',
+          name: 'accounts-add',
+          component: () => import('@/views/AccountsView.vue')
+        },
+        {
+          path: '/accounts/:id',
+          name: 'accounts-details',
+          component: () => import('@/views/AccountsView.vue')
+        },
+        {
+          path: '/accounts/add',
+          name: 'accounts-add',
+          component: () => import('@/views/AccountsEditView.vue')
+        },
+        {
+          path: '/accounts/edit/:id',
+          name: 'accounts-edit',
+          component: () => import('@/views/AccountsEditView.vue')
+        },
       ]
     }
     // {

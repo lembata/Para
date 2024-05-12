@@ -1,11 +1,11 @@
 <script setup>
 import { ref, defineModel, defineProps } from 'vue';
-import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n(); 
 
 const model = defineModel();
-const props = defineProps(['text', 'placeholder', 'ariaLabel', 'disabled']);//, 'name', 'placeholder', "aria-label", "modelValue"]);
+const props = defineProps(['text', 'rows', 'cols', 'placeholder', 'ariaLabel', 'disabled']);
 
 </script>
 
@@ -14,7 +14,7 @@ const props = defineProps(['text', 'placeholder', 'ariaLabel', 'disabled']);//, 
     <label class="form-label" for="grid-first-name">
       {{ $t(text) }}: {{ model }}
     </label>
-    <InputText class="w-full" v-model="model" :aria-label :placeholder :disabled />
+    <Textarea class="w-full" v-model="model" :aria-label :placeholder :rows :cols :disabled autoresize/>
     <p class="hidden text-xs italic text-red-500">Please fill out this field.</p>
   </div>
 </template>

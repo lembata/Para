@@ -6,6 +6,6 @@ import AccountForm from '../components/forms/AccountForm.vue';
 
 <template>
   <main>
-    "This will be the accounts view."
+    <AccountForm />
   </main>
 </template>

@@ -1,13 +1,21 @@
 {
-	"pages": {
-		"dashboard": "Dashboard",
-		"accounts": "Accounts",
-		"settings": "Settings"
-	},
-	"messages" : {
-		"hello": "Hello!"
-	},
-	"forms" : {
-		"manditoryFields" : "Manditory Fields" 
-	}
+  "buttons.save" : "Save",
+  "forms.BIC" : "BIC",
+  "forms.IBAN" : "IBAN",
+  "forms.IncludeInNetWorth" : "Include In Net Worth",
+  "forms.accountName" : "Account Name",
+  "forms.accountNamePlaceholder" : "Personal Bank Account",
+  "forms.accountNumber" : "Account Number",
+  "forms.currency" : "Currency",
+  "forms.manditoryFields" : "Manditory Fields",
+  "forms.optionalFields" : "Optional Fields",
+  "forms.openingBalance" : "Opening Balance",
+  "forms.openingBalanceDate" : "Opening Balance Date",
+  "forms.notes" : "Notes",
+  "notifications.accountCreated" : "Account Created",
+  "notifications.accountCreationFailed" : "Account Creation Failed",
+  "messages.hello" : "Hello!",
+  "pages.accounts" : "Accounts",
+  "pages.dashboard" : "Dashboard",
+  "pages.settings" : "Settings"
 }

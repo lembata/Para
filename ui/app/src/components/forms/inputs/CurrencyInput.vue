@@ -4,8 +4,8 @@ import Dropdown from 'primevue/dropdown';
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
-const props = defineProps(['text', 'invalid', 'aria-lavel']);
-const model = defineModel('');
+const props = defineProps(['text', 'invalid', 'placeholder', 'ariaLabel', 'disabled']);
+const model = defineModel();
 
 const currencies = [
   { value: 'EUR', name: 'Euro', symbol: '€' },
@@ -19,8 +19,10 @@ const currencies = [
   <div class="form-input">
     <label class="form-label"> {{ $t(text) }} {{ model }}</label>
     <div class="relative">
-      <Dropdown v-model="model" :options="currencies" optionLabel="name" :invalid :aria-label
-        placeholder="Select a currency" class="w-full md:w-14rem" />
+      <Dropdown v-model="model" :options="currencies" filter optionValue="value"
+        optionLabel="name" :invalid :aria-label
+        :disabled                                                                      
+        :placeholder class="w-full md:w-14rem" />
     </div>
   </div>
 </template>

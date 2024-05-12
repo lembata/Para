@@ -4,8 +4,8 @@ import Calendar from 'primevue/calendar';
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
-const props = defineProps(['text', 'placeholder']);
-const model = defineModel('');
+const props = defineProps(['text', 'placeholder', 'ariaLabel', 'showOnFocus', 'disabled']);
+const model = defineModel();
 
 </script>
 
@@ -14,7 +14,7 @@ const model = defineModel('');
     <label class="form-label" for="grid-first-name">
       {{ $t(text) }}: {{ model }}
     </label>
-    <Calendar class="w-full" v-model="model" :aria-label :placeholder :showOnFocus="true">
+    <Calendar class="w-full" v-model="model" :aria-label :placeholder :showOnFocus="true" :disabled="disabled">
     </Calendar>
     <p class="hidden text-xs italic text-red-500">Please fill out this field.</p>
   </div>

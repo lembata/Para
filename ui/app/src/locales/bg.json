@@ -1,13 +1,21 @@
 {
-	"pages": {
-		"dashboard": "Дашбоард",
-		"accounts": "Сметки",
-		"settings": "Настройки"
-	},
-	"messages" : {
-		"hello": "Здравей!"
-	},
-	"forms" : {
-		"manditoryFields" : "Задължителни полета" 
-	}
+  "buttons.save" : "Запази",
+  "forms.BIC" : "BIC",
+  "forms.IBAN" : "IBAN",
+  "forms.IncludeInNetWorth" : "Включи към Нетна Стойност",
+  "forms.accountName" : "Име на сметка",
+  "forms.accountNamePlaceholder" : "Лична Сметка",
+  "forms.accountNumber" : "Номер на сметка",
+  "forms.currency" : "Валута",
+  "forms.manditoryFields" : "Задължителни Полета",
+  "forms.optionalFields" : "Опционални Полета",
+  "forms.openingBalance" : "Начален Баланс",
+  "forms.openingBalanceDate" : "Дата на Начален Баланс",
+  "forms.notes" : "Бележки",
+  "notifications.accountCreated" : "Сметката е създадена",
+  "notifications.accountCreationFailed" : "Сметката не е създадена",
+  "messages.hello" : "Здравей!",
+  "pages.accounts" : "Сметки",
+  "pages.dashboard" : "Табло",
+  "pages.settings" : "Настройки"
 }

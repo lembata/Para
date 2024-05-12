@@ -1,10 +1,17 @@
 create table accounts (
   id integer not null primary key autoincrement,
   name varchar(255) not null,
+  iban varchar(34),
+  bic varchar(12),
+  account_number varchar(10),
+  account_type integer not null default 0,
+  opening_balance integer not null default 0,
+  opening_balance_date datetime not null,
+  include_in_net_worth boolean not null,
   created_at datetime not null,
   updated_at datetime not null,
   currency varchar(3) not null default 'EUR',
-  initial_balance decimal(10, 2) not null
+  notes varchar(1024) not null
 );
 
 create table categories (

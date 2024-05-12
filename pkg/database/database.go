@@ -1,14 +1,16 @@
 package database
 
 import (
+	"context"
 	"embed"
 	"errors"
 	"fmt"
 	"time"
-	"context"
 
 	"github.com/jmoiron/sqlx"
 
+	"github.com/Masterminds/squirrel"
+	"github.com/lembata/para/internal/entities"
 	"github.com/lembata/para/pkg/logger"
 	//"github.com/mattn/go-sqlite3"
 )
@@ -68,7 +70,6 @@ func (db *Database) Open(connectionString string) error {
 	db.dbPath = connectionString
 	var err error
 
-
 	db.schemaVersion, _ = db.getSchemaVersion()
 	logger.Infof("Database schema version: %d", db.schemaVersion)
 
@@ -124,7 +125,7 @@ func (db *Database) RunAllMigrations() error {
 	return nil
 }
 
-func (db *Database) Exec(query string, args ...any)  error {
+func (db *Database) Exec(query string, args ...any) error {
 	db.lock()
 	defer db.unlock()
 
@@ -193,3 +194,33 @@ func (db *Database) open(disableForeignKeys bool) (*sqlx.DB, error) {
 	return conn, nil
 }
 
+func (db *Database) CreateAccount(ctx context.Context, account entities.AccountEntity) (int64, error) {
+	//tx, err := db.db.BeginTxx(ctx, nil)
+	db.lock()
+	defer db.unlock()
+
+	sql, args, err := squirrel.Insert("accounts").
+		Columns("name", "currency", "iban", "bic",
+			"account_number", "opening_balance",
+			"opening_balance_date", "notes").
+		Values(account.Name, account.Currency, account.IBAN, account.BIC,
+			account.AccountNumber, account.OpeningBalance,
+			account.OpeningBalanceDate, account.Notes).
+		ToSql()
+
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := db.db.MustExecContext(ctx, sql, args...).LastInsertId()
+
+	if err != nil {
+		return 0, err
+	}
+
+	if id == 0 {
+		return 0, errors.New("no id issued")
+	}
+
+	return id, nil
+}

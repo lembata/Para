@@ -1,12 +1,11 @@
 <script setup>
 import { ref, defineModel, defineProps } from 'vue';
-import InputNumber from 'primevue/inputnumber';
+import InputSwitch from 'primevue/inputswitch';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n(); 
 
 const model = defineModel();
-const props = defineProps(['text', 'placeholder', 'disabled',
-  'ariaLabel', 'min', 'max', 'minFractionDigits']);
+const props = defineProps(['text', 'ariaLabel', 'disabled']);
 
 </script>
 
@@ -15,6 +14,6 @@ const props = defineProps(['text', 'placeholder', 'disabled',
     <label class="form-label" for="grid-first-name">
       {{ $t(text) }}: {{ model }}
     </label>
-    <InputNumber class="w-full" v-model="model" :disabled :aria-label :placeholder :min :max :minFractionDigits />
+    <InputSwitch v-model="model" :aria-label :disabled/>
   </div>
 </template>

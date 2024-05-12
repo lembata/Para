@@ -67,12 +67,13 @@ func Init() (*Server, error) {
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
-		MaxAge:           300,
+		MaxAge:           10000,
 	}))
 
 	router.Use(middleware.Heartbeat("/healthz"))
-	router.Use(middleware.Logger)
 	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 	router.Use(authenticateHandler())
 
@@ -169,6 +170,7 @@ func (s *Server) loginRouter() http.Handler {
 func (s *Server) accountRouter() http.Handler {
 	r := chi.NewRouter()
 	//r.Use(AdminOnly)
+	r.Get("/{id}", s.AccountService.GetAccount)
 	r.Post("/add", s.AccountService.CreateAccount)
 	return r
 }
@@ -189,3 +191,4 @@ func (s *Server) addStaticResponses() http.Handler {
 
 	return nil
 }
+
