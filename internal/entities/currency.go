@@ -1,4 +1,4 @@
-package enities
+package entities
 
 type Currency struct {
 	NameKey string

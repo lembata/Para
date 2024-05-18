@@ -14,6 +14,16 @@ const API = {
       console.log("Accounts.edit", data);
       return await requester._post(`api/accounts/edit/${id}`, data)
     },
+    all: async (id) => {
+      console.log("Accounts.get", id);
+      return await requester._post(`api/accounts/all`,
+        {
+          offset: 0,
+          limit: 10,
+          order: 'asc',
+          orderBy: 'id'
+        })
+    },
     get: async (id) => {
       console.log("Accounts.get", id);
       return await requester._get(`api/accounts/${id}`)

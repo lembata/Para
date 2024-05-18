@@ -36,6 +36,9 @@ func main() {
 		os.Create(dbPath)
 	}
 
+	db := database.Init()
+	defer db.Close()
+
 	server, err := api.Init()
 
 	if err != nil {
@@ -44,8 +47,10 @@ func main() {
 		return
 	}
 
-	database := database.NewDatabase()
+	database := database.Init()
+	database.Open(dbPath)
 	err = database.Open(dbPath)
+
 	if err != nil {
 		exitCode = 1
 		logger.Errorf("failed to open database: %v", err)

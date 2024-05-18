@@ -1,19 +1,20 @@
 package api
 
 import (
-	//"html/template"
 	"bytes"
+	"encoding/json"
 	"io/fs"
 	"net/http"
 	"path"
 	"time"
 
 	"github.com/lembata/para/pkg/logger"
+	//"github.com/lembata/para/pkg/database"
 	"github.com/lembata/para/ui"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/cors"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/go-chi/httplog"
 	"github.com/vearutop/statigz"
 )
@@ -27,21 +28,11 @@ type Server struct {
 	AccountService
 }
 
-
-
-type SidebarButton struct {
-	Icon string
-	Text string
-}
-
-type TempDash struct {
-	Header    string
-	Paragraph string
-}
-
-type Page struct {
-	Body    string
-	Sidebar []SidebarButton
+type ApiResponse struct {
+	Success   bool   `json:"success"`
+	Data      any    `json:"data"`
+	Error     string `json:"error"`
+	ErrorCode int    `json:"errorCode"`
 }
 
 func Init() (*Server, error) {
@@ -59,10 +50,8 @@ func Init() (*Server, error) {
 		LoginService:     LoginService{},
 	}
 
-	//server.LoginService.templates.LoadTemplates()
 	router.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"https://*", "http://*"},
-		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -78,65 +67,35 @@ func Init() (*Server, error) {
 	router.Use(authenticateHandler())
 
 	httpLogger := log.NewHttpLogger()
-	// httplog.NewLogger("Para", httplog.Options{
-	// 	Concise: true,
-	// })
 
 	router.Use(httplog.RequestLogger(httpLogger))
 
-	// router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-	// 	http.Redirect(w, r, "/dashboard", http.StatusFound)
-	// })
 	router.Mount("/api/dashboard", server.dashBoardRouter())
 	router.Mount("/api/login", server.loginRouter())
 	router.Mount("/api/accounts", server.accountRouter())
 
-	//customUILocation := ""
 	staticUI := statigz.FileServer(ui.UIBox.(fs.ReadDirFS))
 
 	router.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		ext := path.Ext(r.URL.Path)
 
 		if ext == ".html" || ext == "" {
-			//themeColor := cfg.GetThemeColor()
 			data, err := fs.ReadFile(ui.UIBox, "index.html")
 			if err != nil {
 				panic(err)
 			}
-			//indexHtml := string(data)
-			//prefix := getProxyPrefix(r)
-			//indexHtml = strings.ReplaceAll(indexHtml, "%COLOR%", themeColor)
-			//indexHtml = strings.Replace(indexHtml, `<base href="/"`, fmt.Sprintf(`<base href="%s/"`, prefix), 1)
 
 			w.Header().Set("Content-Type", "text/html")
-			//setPageSecurityHeaders(w, r, pluginCache.ListPlugins())
-
-			// if r.URL.Query().Has("t") {
-			// 	w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
-			// } else {
-			// 	w.Header().Set("Cache-Control", "no-cache")
-			// }
-
 			w.Header().Set("Cache-Control", "no-cache")
-
-			//w.Header().Set("ETag", GenerateETag(data))
 
 			http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(data))
 
 		} else {
 			w.Header().Set("Cache-Control", "no-cache")
-			// isStatic, _ := path.Match("/assets/*", r.URL.Path)
-			// if isStatic {
-			// 	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-			// } else {
-			// 	w.Header().Set("Cache-Control", "no-cache")
-			// }
 
 			staticUI.ServeHTTP(w, r)
 		}
 	})
-	//fs := http.FileServer(http.Dir("ui/dist"))
-	//router.Handle("/", fs.ServeHTTP(r, w))// http.StripPrefix("/", fs))
 
 	return &server, nil
 }
@@ -172,6 +131,7 @@ func (s *Server) accountRouter() http.Handler {
 	//r.Use(AdminOnly)
 	r.Get("/{id}", s.AccountService.GetAccount)
 	r.Post("/add", s.AccountService.CreateAccount)
+	r.Post("/all", s.AccountService.All)
 	return r
 }
 
@@ -192,3 +152,47 @@ func (s *Server) addStaticResponses() http.Handler {
 	return nil
 }
 
+func WriteFailure(w http.ResponseWriter, error string, errorCode int) {
+	w.WriteHeader(http.StatusBadRequest)
+	w.Write(Failure(error, errorCode))
+}
+
+func WriteSuccess(w http.ResponseWriter) {
+	w.Write(Success())
+}
+
+func WriteData(w http.ResponseWriter, data any) {
+	w.Write(Data(data))
+}
+
+
+func Failure(error string, errorCode int) []byte {
+	json, _ := json.Marshal(ApiResponse{
+		Success:   false,
+		Error:     error,
+		ErrorCode: errorCode,
+	})
+
+	return json
+}
+
+func Success() []byte {
+	json, _ := json.Marshal(ApiResponse{
+		Success: true,
+	})
+
+	return json
+}
+
+func Data(data any) []byte {
+	json, err := json.Marshal(ApiResponse{
+		Success: true,
+		Data:    data,
+	})
+
+	if err != nil {
+		return Failure("failed to serialize data", http.StatusInternalServerError)
+	}
+
+	return json
+}

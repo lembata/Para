@@ -11,7 +11,8 @@ import SwitchInput from './inputs/SwitchInput.vue'
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import ProgressSpinner from 'primevue/progressspinner';
-import API from '../../api/api.js';
+import API from '@/api/api.js';
+//import API from '../../api/api.js';
 import { useToast } from 'primevue/usetoast';
 
 const { t } = useI18n();
@@ -69,7 +70,9 @@ const submitForm = async () => {
 
   working.value = true;
 
-  data = {
+  //console.log('accountName', accountName.value, currency.value, iban.value, bic.value, accountNumber.value, openingBalance.value, openiningBalanceDate.value, notes.value);
+
+  const data = {
     accountName: accountName.value,
     currency: currency.value,
     iban: iban.value,
@@ -77,7 +80,7 @@ const submitForm = async () => {
     accountNumber: accountNumber.value,
     openingBalance: openingBalance.value,
     openiningBalanceDate: openiningBalanceDate.value,
-    notes: notes.value
+    notes:  notes.value
   }
 
   let result;
@@ -137,7 +140,7 @@ watch(() => route.params.id, loadInitial, { immediate: true })
           <DateInput v-model="openiningBalanceDate" text="forms.openingBalanceDate" name="openingBalanceDate"
             :disabled="loading" />
           <SwitchInput text="forms.IncludeInNetWorth" :disabled="loading" />
-          <TextArea text="forms.notes" :disabled="loading" />
+          <TextArea v-model="notes" text="forms.notes" :disabled="loading" />
 
 
         </template>

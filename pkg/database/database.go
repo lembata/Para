@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"embed"
 	"errors"
 	"fmt"
@@ -20,6 +21,8 @@ var appSchemaVersion = uint(1)
 
 //go:embed migrations/*.sql
 var migrationsBox embed.FS
+
+var instance *Database
 
 const (
 	// Number of database connections to use
@@ -43,11 +46,19 @@ type Database struct {
 	lockChan      chan struct{}
 }
 
-func NewDatabase() *Database {
-	return &Database{
-		lockChan: make(chan struct{}, 1),
+func Init() *Database {
+	if instance == nil {
+		instance = newDatabase()
 	}
+
+	return instance
 }
+
+func GetInstance() *Database {
+	return instance
+}
+
+
 
 func (db *Database) Ready() error {
 	if db.db == nil {
@@ -64,7 +75,7 @@ func (db *Database) Close() error {
 
 func (db *Database) Open(connectionString string) error {
 	logger.Info("Opening database")
-	db.lock()
+	db.lockNoCtx()
 	defer db.unlock()
 
 	db.dbPath = connectionString
@@ -79,7 +90,14 @@ func (db *Database) Open(connectionString string) error {
 	}
 
 	if err != nil {
+		logger.Errorf("error while running migrations: %v", err)
 		return err
+	}
+
+	if db.db == nil {
+		if db.db, err = db.open(false); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -126,7 +144,7 @@ func (db *Database) RunAllMigrations() error {
 }
 
 func (db *Database) Exec(query string, args ...any) error {
-	db.lock()
+	db.lockNoCtx()
 	defer db.unlock()
 
 	result, err := db.db.Exec(query, args...)
@@ -140,12 +158,23 @@ func (db *Database) Exec(query string, args ...any) error {
 	return nil
 }
 
-// Locking db for writing
-func (db *Database) lock() {
+// lock locks the database for writing.
+// This method will block until the lock is acquired of the context is cancelled.
+func (db *Database) lock(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case db.lockChan <- struct{}{}:
+		return nil
+	}
+}
+
+// lock locks the database for writing. This method will block until the lock is acquired.
+func (db *Database) lockNoCtx() {
 	db.lockChan <- struct{}{}
 }
 
-// Unlocking db after writing
+// unlock unlocks the database
 func (db *Database) unlock() {
 	select {
 	case <-db.lockChan:
@@ -195,32 +224,114 @@ func (db *Database) open(disableForeignKeys bool) (*sqlx.DB, error) {
 }
 
 func (db *Database) CreateAccount(ctx context.Context, account entities.AccountEntity) (int64, error) {
-	//tx, err := db.db.BeginTxx(ctx, nil)
-	db.lock()
-	defer db.unlock()
+	logger.Debugf("Creating account: %v", account)
 
-	sql, args, err := squirrel.Insert("accounts").
+	sqler := squirrel.Insert("accounts").
 		Columns("name", "currency", "iban", "bic",
 			"account_number", "opening_balance",
-			"opening_balance_date", "notes").
+			"opening_balance_date", "notes",
+			"created_at", "updated_at",
+			"include_in_net_worth").
 		Values(account.Name, account.Currency, account.IBAN, account.BIC,
 			account.AccountNumber, account.OpeningBalance,
-			account.OpeningBalanceDate, account.Notes).
-		ToSql()
+			account.OpeningBalanceDate, account.Notes,
+			account.CreateAt, account.UpdateAt,
+			account.IncludeInNetWorth)
+
+	result, err := exec(ctx, sqler)
 
 	if err != nil {
 		return 0, err
 	}
 
-	id, err := db.db.MustExecContext(ctx, sql, args...).LastInsertId()
+	
 
-	if err != nil {
-		return 0, err
-	}
 
-	if id == 0 {
-		return 0, errors.New("no id issued")
-	}
-
-	return id, nil
+	return result.LastInsertId()
 }
+
+func (db *Database) GetAccounts(ctx context.Context) (*sql.Rows, error) {
+	logger.Debugf("Getting Accounts")
+
+	/*
+select a.id, a.name, sum(t.total) as transaction_amount
+from accounts a
+left join transactions t on t.account_id = a.id
+group by a.id, a.name
+	*/
+	sqler := squirrel.Select("a.id", "a.name",
+		"(a.opening_balance + ifnull(sum(t.total_amount), 0) - ifnull(sum(f.total_amount), 0) ) as delta").
+		From("accounts a").
+		LeftJoin("transactions f on f.from_account_id = a.id").
+		LeftJoin("transactions t on t.to_account_id = a.id").
+		// Columns("id", "name", "currency", "iban", "bic",
+		// 	"account_number", "opening_balance",
+		// 	"opening_balance_date", "notes",
+		// 	"created_at", "updated_at",
+		// 	"include_in_net_worth").
+		GroupBy("a.id", "a.name", "a.opening_balance").
+		Where("deleted = ?", false).
+		OrderBy("a.id").
+		Offset(0).
+		Limit(100)
+	
+	return query(ctx, sqler)
+}
+
+func newDatabase() *Database {
+	return &Database{
+		lockChan: make(chan struct{}, 1),
+	}
+}
+
+// func exex() ( sql.Result, error) {
+// 	return nil, nil
+// }
+
+type sqler interface {
+	ToSql() (string, []interface{}, error)
+}
+
+func exec(ctx context.Context, stmt sqler) (sql.Result, error) {
+	tx, err := getTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sql, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generating sql: %w", err)
+	}
+
+	logger.Tracef("SQL: %s [%v]", sql, args)
+	ret, err := tx.ExecContext(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("executing `%s` [%v]: %w", sql, args, err)
+	}
+
+	return ret, nil
+}
+
+func query(ctx context.Context, stmt sqler) (*sql.Rows, error) {
+	tx, err := getTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sql, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generating sql: %w", err)
+	}
+
+	logger.Tracef("SQL: %s [%v]", sql, args)
+	rows, err := tx.QueryContext(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("executing `%s` [%v]: %w", sql, args, err)
+	}
+
+	return rows, nil
+}
+
+
+
+///////// transaction
