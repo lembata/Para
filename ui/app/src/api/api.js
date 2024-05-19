@@ -10,9 +10,9 @@ const API = {
       console.log("Accounts.add", data);
       return await requester._post('api/accounts/add', data)
     },
-    edit: async (id, data) => {
+    edit: async (data) => {
       console.log("Accounts.edit", data);
-      return await requester._post(`api/accounts/edit/${id}`, data)
+      return await requester._post(`api/accounts/edit`, data)
     },
     all: async (id) => {
       console.log("Accounts.get", id);
@@ -28,6 +28,10 @@ const API = {
       console.log("Accounts.get", id);
       return await requester._get(`api/accounts/${id}`)
     },
+    delete: async (id) => {
+      console.log("Accounts.delete", id);
+      return await requester._post(`api/accounts/delete/${id}`, {})
+    }
   }
 }
 

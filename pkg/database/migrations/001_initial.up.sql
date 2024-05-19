@@ -12,6 +12,7 @@ create table accounts (
   updated_at datetime not null,
   currency varchar(3) not null default 'EUR',
   notes varchar(1024) not null,
+  order_index integer not null default 0,
   deleted boolean not null default false
 );
 

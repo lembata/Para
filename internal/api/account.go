@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/lembata/para/internal/entities"
+	"github.com/lembata/para/pkg/currency"
 	"github.com/lembata/para/pkg/database"
 )
 
@@ -34,7 +34,7 @@ type AccountShort struct {
 	Id             int     `json:"id"`
 	AccountName    string  `json:"accountName"`
 	CurrentBalance float64 `json:"currentBalance"`
-	LastActivity   float64 `json:"currentBalance"`
+	LastActivity   string  `json:"lastActivity"`
 }
 
 func (s *AccountService) CreateAccount(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +65,7 @@ func (s *AccountService) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		CreateAt:           time.Now(),
 		UpdateAt:           time.Now(),
 		Currency:           account.Currency,
-		OpeningBalance:     int(account.OpeningBalance * 100),
+		OpeningBalance:     currency.ToCoins(account.OpeningBalance),
 		OpeningBalanceDate: account.OpeningBalanceDate,
 		IBAN:               account.IBAN,
 		BIC:                account.BIC,
@@ -91,7 +91,67 @@ func (s *AccountService) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	time.Sleep(200 * time.Second)
+	err = db.Commit(ctx)
+
+	if err != nil {
+		logger.Errorf("failed to create account: %v", err)
+		WriteFailure(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	_, _ = WriteSuccess(w)
+}
+
+func (s *AccountService) EditAccount(w http.ResponseWriter, r *http.Request) {
+	var account AccountData
+	err := json.NewDecoder(r.Body).Decode(&account)
+
+	if err != nil {
+		WriteFailure(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	logger.Debugf("Creating account: %v", account)
+
+	if account.AccountName == "" {
+		WriteFailure(w, "account name is required", http.StatusBadRequest)
+		return
+	}
+
+	if len(account.Currency) != 3 {
+		WriteFailure(w, "currency is invalid", http.StatusBadRequest)
+		return
+	}
+
+	newAccount := entities.AccountEntity{
+		//_ = entities.AccountEntity{
+		Id:                 int64(account.Id),
+		Name:               account.AccountName,
+		UpdateAt:           time.Now(),
+		Currency:           account.Currency,
+		OpeningBalance:     currency.ToCoins(account.OpeningBalance),
+		OpeningBalanceDate: account.OpeningBalanceDate,
+		IBAN:               account.IBAN,
+		BIC:                account.BIC,
+		AccountNumber:      account.AccountNumber,
+		Notes:              account.Notes,
+		IncludeInNetWorth:  account.IncludeInNetWorth,
+	}
+
+	db := database.GetInstance()
+	ctx, err := db.Begin(r.Context(), false)
+
+	if err != nil {
+		logger.Errorf("failed to begin transaction: %v", err)
+		WriteFailure(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if _, err = db.EditAccount(ctx, newAccount); err != nil {
+		logger.Errorf("failed to edit account: %v", err)
+		WriteFailure(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	err = db.Commit(ctx)
 
@@ -101,7 +161,7 @@ func (s *AccountService) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(Success())
+	_, _ = WriteSuccess(w)
 }
 
 func (s *AccountService) All(w http.ResponseWriter, r *http.Request) {
@@ -124,68 +184,69 @@ func (s *AccountService) All(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var rows *sql.Rows
-	if rows, err = db.GetAccounts(ctx); err != nil {
+	var accounts []entities.AccountRow
+
+	if accounts, err = db.GetAccounts(ctx, 0, 10, "id"); err != nil {
 		logger.Errorf("failed to get account: %v", err)
 		WriteFailure(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	// if err = db.Commit(ctx); err != nil {
-	// 	WriteFailure(w, err.Error(), http.StatusBadRequest)
-	// 	return
-	// }
-	
-	logger.Debug("HERE 0")
-
-	for rows.Next() {
-        //var alb Album
-		var id int64
-		var name string
-		var delta int64
-
-        if err := rows.Scan(&id, &name, &delta); err != nil {
-            logger.Errorf("Error %v", err)
-			break
-        }
-
-	logger.Debugf("id: %d, name: %s, delta: %d" , id, name, delta)
-    }
-		
-	logger.Debug("HERE 1")
-
 
 	if err = db.Commit(ctx); err != nil {
 		WriteFailure(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	return
+	logger.Debugf("Got accounts: %v", accounts)
+
+	_, _ = WriteData(w, accounts)
 }
 
 func (s *AccountService) GetAccount(w http.ResponseWriter, r *http.Request) {
-	ctx := chi.RouteContext(r.Context())
-	ctx.URLParam("id")
-	idStr := ctx.URLParam("id")
+	chiCtx := chi.RouteContext(r.Context())
+	chiCtx.URLParam("id")
+	idStr := chiCtx.URLParam("id")
 
 	id, err := strconv.Atoi(idStr)
 
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(Failure("invalid account id", http.StatusBadRequest))
+		WriteFailure(w, "invalid account id", http.StatusBadRequest)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write(Data(AccountData{
-		Id:                 id,
-		AccountName:        "Test Account",
-		Currency:           "EUR",
-		IBAN:               "DE1234567890",
-		BIC:                "BIC1234567890",
-		AccountNumber:      "1234567890",
-		OpeningBalance:     100.00,
-		OpeningBalanceDate: "2021-01-01",
-		Notes:              "This is a test account",
-	}))
+	db := database.GetInstance()
+
+	var ctx context.Context
+	if ctx, err = db.Begin(r.Context(), false); err != nil {
+		WriteFailure(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var account entities.AccountEntity
+
+	if account, err = db.GetAccountById(ctx, int64(id)); err != nil {
+		logger.Errorf("failed to get account: %v", err)
+		WriteFailure(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err = db.Commit(ctx); err != nil {
+		WriteFailure(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	accountData := AccountData{
+		Id:                 int(account.Id),
+		AccountName:        account.Name,
+		Currency:           account.Currency,
+		IBAN:               account.IBAN,
+		BIC:                account.BIC,
+		AccountNumber:      account.AccountNumber,
+		OpeningBalance:     currency.FromCoins(account.OpeningBalance),
+		OpeningBalanceDate: account.OpeningBalanceDate,
+		Notes:              account.Notes,
+		IncludeInNetWorth:  account.IncludeInNetWorth,
+	}
+
+	_, _ = WriteData(w, accountData)
 }

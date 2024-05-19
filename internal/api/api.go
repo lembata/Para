@@ -8,7 +8,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/lembata/para/pkg/logger"
+	log "github.com/lembata/para/pkg/logger"
 	//"github.com/lembata/para/pkg/database"
 	"github.com/lembata/para/ui"
 
@@ -132,6 +132,7 @@ func (s *Server) accountRouter() http.Handler {
 	r.Get("/{id}", s.AccountService.GetAccount)
 	r.Post("/add", s.AccountService.CreateAccount)
 	r.Post("/all", s.AccountService.All)
+	r.Post("/edit", s.AccountService.EditAccount)
 	return r
 }
 
@@ -154,38 +155,38 @@ func (s *Server) addStaticResponses() http.Handler {
 
 func WriteFailure(w http.ResponseWriter, error string, errorCode int) {
 	w.WriteHeader(http.StatusBadRequest)
-	w.Write(Failure(error, errorCode))
+	_, _ = w.Write(Failure(error, errorCode))
 }
 
-func WriteSuccess(w http.ResponseWriter) {
-	w.Write(Success())
+func WriteSuccess(w http.ResponseWriter) (int, error) {
+	return w.Write(Success())
 }
 
-func WriteData(w http.ResponseWriter, data any) {
-	w.Write(Data(data))
+func WriteData(w http.ResponseWriter, data any) (int, error) {
+	w.WriteHeader(http.StatusOK)
+	return w.Write(Data(data))
 }
-
 
 func Failure(error string, errorCode int) []byte {
-	json, _ := json.Marshal(ApiResponse{
+	failureJson, _ := json.Marshal(ApiResponse{
 		Success:   false,
 		Error:     error,
 		ErrorCode: errorCode,
 	})
 
-	return json
+	return failureJson
 }
 
 func Success() []byte {
-	json, _ := json.Marshal(ApiResponse{
+	successJson, _ := json.Marshal(ApiResponse{
 		Success: true,
 	})
 
-	return json
+	return successJson
 }
 
 func Data(data any) []byte {
-	json, err := json.Marshal(ApiResponse{
+	dataJson, err := json.Marshal(ApiResponse{
 		Success: true,
 		Data:    data,
 	})
@@ -194,5 +195,5 @@ func Data(data any) []byte {
 		return Failure("failed to serialize data", http.StatusInternalServerError)
 	}
 
-	return json
+	return dataJson
 }

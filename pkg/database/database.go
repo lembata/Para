@@ -39,6 +39,11 @@ const (
 	sqlite3Drive  = "sqlite3"
 )
 
+var (
+	ErrorNotFound       = errors.New("not found")
+	ErrorNotInitialized = errors.New("not initialized")
+)
+
 type Database struct {
 	dbPath        string
 	db            *sqlx.DB
@@ -58,11 +63,9 @@ func GetInstance() *Database {
 	return instance
 }
 
-
-
 func (db *Database) Ready() error {
 	if db.db == nil {
-		return errors.New("database not initialized")
+		return ErrorNotInitialized
 	}
 
 	return nil
@@ -216,10 +219,6 @@ func (db *Database) open(disableForeignKeys bool) (*sqlx.DB, error) {
 	conn.SetMaxIdleConns(dbConns)
 	conn.SetConnMaxIdleTime(dbConnTimeout * time.Second)
 
-	if err != nil {
-		return nil, fmt.Errorf("db.Open(): %w", err)
-	}
-
 	return conn, nil
 }
 
@@ -244,38 +243,112 @@ func (db *Database) CreateAccount(ctx context.Context, account entities.AccountE
 		return 0, err
 	}
 
-	
+	return result.LastInsertId()
+}
 
+func (db *Database) EditAccount(ctx context.Context, account entities.AccountEntity) (int64, error) {
+	logger.Debugf("Creating account: %v", account)
+
+	sqler := squirrel.Update("accounts").
+		Set("name", account.Name).
+		Set("currency", account.Currency).
+		Set("iban", account.IBAN).
+		Set("bic", account.BIC).
+		Set("account_number", account.AccountNumber).
+		Set("opening_balance", account.OpeningBalance).
+		Set("opening_balance_date", account.OpeningBalanceDate).
+		Set("notes", account.Notes).
+		Set("created_at", account.CreateAt).
+		Set("updated_at", account.UpdateAt).
+		Set("include_in_net_worth", account.IncludeInNetWorth).
+		Where("id = ?", account.Id)
+
+	result, err := exec(ctx, sqler)
+
+	if err != nil {
+		return 0, err
+	}
 
 	return result.LastInsertId()
 }
 
-func (db *Database) GetAccounts(ctx context.Context) (*sql.Rows, error) {
+func (db *Database) GetAccountById(ctx context.Context, id int64) (entities.AccountEntity, error) {
 	logger.Debugf("Getting Accounts")
 
-	/*
-select a.id, a.name, sum(t.total) as transaction_amount
-from accounts a
-left join transactions t on t.account_id = a.id
-group by a.id, a.name
-	*/
-	sqler := squirrel.Select("a.id", "a.name",
-		"(a.opening_balance + ifnull(sum(t.total_amount), 0) - ifnull(sum(f.total_amount), 0) ) as delta").
+	sqler := squirrel.Select("id", "name", "currency", "iban", "bic",
+		"account_number", "opening_balance",
+		"opening_balance_date", "notes",
+		"created_at", "updated_at",
+		"include_in_net_worth").
+		From("accounts").
+		Where("id = ?", id).
+		Limit(1)
+
+	rows, err := query(ctx, sqler)
+
+	if err != nil {
+		return entities.AccountEntity{}, err
+	}
+
+	defer func() { _ = rows.Close() }()
+
+	if rows.Next() {
+		var row entities.AccountEntity
+
+		if err := rows.Scan(&row.Id, &row.Name,
+			&row.Currency, &row.IBAN, &row.BIC,
+			&row.AccountNumber, &row.OpeningBalance,
+			&row.OpeningBalanceDate, &row.Notes,
+			&row.CreateAt, &row.UpdateAt,
+			&row.IncludeInNetWorth); err != nil {
+			logger.Errorf("Error %v", err)
+			return row, err
+		}
+
+		return row, nil
+	}
+
+	return entities.AccountEntity{}, ErrorNotFound
+}
+
+func (db *Database) GetAccounts(ctx context.Context, offset uint64, limit uint64, order string) ([]entities.AccountRow, error) {
+	logger.Debugf("Getting Accounts")
+
+	sqler := squirrel.Select("a.id as id", "a.name as name",
+		"a.currency as currency",
+		"(a.opening_balance + ifnull(sum(t.total_amount), 0) - ifnull(sum(f.total_amount), 0) ) as balance").
 		From("accounts a").
 		LeftJoin("transactions f on f.from_account_id = a.id").
 		LeftJoin("transactions t on t.to_account_id = a.id").
-		// Columns("id", "name", "currency", "iban", "bic",
-		// 	"account_number", "opening_balance",
-		// 	"opening_balance_date", "notes",
-		// 	"created_at", "updated_at",
-		// 	"include_in_net_worth").
-		GroupBy("a.id", "a.name", "a.opening_balance").
+		GroupBy("a.id", "a.name", "a.currency", "a.opening_balance").
 		Where("deleted = ?", false).
-		OrderBy("a.id").
-		Offset(0).
-		Limit(100)
-	
-	return query(ctx, sqler)
+		OrderBy(order).
+		Offset(offset).
+		Limit(limit)
+
+	rows, err := query(ctx, sqler)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() { _ = rows.Close() }()
+	var accounts []entities.AccountRow
+
+	for rows.Next() {
+		//var alb Album
+		var row entities.AccountRow
+
+		if err := rows.Scan(&row.Id, &row.Name,
+			&row.Balance.Currency, &row.Balance.Value); err != nil {
+			logger.Errorf("Error %v", err)
+			break
+		}
+
+		accounts = append(accounts, row)
+	}
+
+	return accounts, nil
 }
 
 func newDatabase() *Database {
@@ -298,15 +371,15 @@ func exec(ctx context.Context, stmt sqler) (sql.Result, error) {
 		return nil, err
 	}
 
-	sql, args, err := stmt.ToSql()
+	query, args, err := stmt.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generating sql: %w", err)
 	}
 
-	logger.Tracef("SQL: %s [%v]", sql, args)
-	ret, err := tx.ExecContext(ctx, sql, args...)
+	logger.Tracef("SQL: %s [%v]", query, args)
+	ret, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("executing `%s` [%v]: %w", sql, args, err)
+		return nil, fmt.Errorf("executing `%s` [%v]: %w", query, args, err)
 	}
 
 	return ret, nil
@@ -318,20 +391,18 @@ func query(ctx context.Context, stmt sqler) (*sql.Rows, error) {
 		return nil, err
 	}
 
-	sql, args, err := stmt.ToSql()
+	query, args, err := stmt.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generating sql: %w", err)
 	}
 
-	logger.Tracef("SQL: %s [%v]", sql, args)
-	rows, err := tx.QueryContext(ctx, sql, args...)
+	logger.Tracef("SQL: %s [%v]", query, args)
+	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("executing `%s` [%v]: %w", sql, args, err)
+		return nil, fmt.Errorf("executing `%s` [%v]: %w", query, args, err)
 	}
 
 	return rows, nil
 }
-
-
 
 ///////// transaction

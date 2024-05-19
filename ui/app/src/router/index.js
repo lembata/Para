@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 //import HomeView from '../views/HomeView.vue'
-import DashboardView from '../views/DashboardView.vue'
+//import DashboardView from '../views/DashboardView.vue'
 import AppLayout from '@/layout/AppLayout.vue'
 
 const router = createRouter({
@@ -28,7 +28,7 @@ const router = createRouter({
         {
           path: '/accounts/:id',
           name: 'accounts-details',
-          component: () => import('@/views/AccountsView.vue')
+          component: () => import('@/views/AccountView.vue')
         },
         {
           path: '/accounts/add',

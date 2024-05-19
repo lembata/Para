@@ -18,3 +18,14 @@ type AccountEntity struct {
 	Notes              string    `db:"notes" json:"notes"`
 	IncludeInNetWorth  bool      `db:"include_in_net_worth" json:"includeInNetWorth"`
 }
+
+type AccountRow struct {
+	Id      int           `json:"id"`
+	Name    string        `json:"name"`
+	Balance CurrencyValue `json:"balance"`
+}
+
+type CurrencyValue struct {
+	Currency string `json:"currency"`
+	Value    int    `json:"value"`
+}

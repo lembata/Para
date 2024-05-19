@@ -16,6 +16,7 @@ var exitCode = 0
 var logger = log.NewLogger()
 
 func main() {
+	defer recoverPanic()
 	defer func() {
 		if exitCode != 0 {
 			os.Exit(exitCode)
@@ -27,29 +28,7 @@ func main() {
 
 	logger.Infof("Using config directory: %s", configDir)
 
-	if _, err := os.Stat(configDir); os.IsNotExist(err) {
-		os.Mkdir(configDir, 0755)
-	}
-
-	dbPath := path.Join(configDir, "para.sqlite")
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		os.Create(dbPath)
-	}
-
-	db := database.Init()
-	defer db.Close()
-
-	server, err := api.Init()
-
-	if err != nil {
-		logger.Errorf("failed to initialize server: %v", err)
-		exitCode = 1
-		return
-	}
-
-	database := database.Init()
-	database.Open(dbPath)
-	err = database.Open(dbPath)
+	db, err := initDatabase(configDir)
 
 	if err != nil {
 		exitCode = 1
@@ -57,7 +36,20 @@ func main() {
 		return
 	}
 
-	defer database.Close()
+	defer func(database *database.Database) {
+		err := database.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(db)
+
+	server, err := api.Init()
+
+	if err != nil {
+		logger.Errorf("failed to init server: %v", err)
+		exitCode = 1
+		return
+	}
 
 	err = server.Start()
 
@@ -67,6 +59,26 @@ func main() {
 		return
 	}
 	//defer server.Shutdown(context.WithCancel(context.Background(), os.Exit(exitCode))b
+}
+
+func initDatabase(configDir string) (*database.Database, error) {
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		if err := os.Mkdir(configDir, 0755); err != nil {
+			return nil, err
+		}
+	}
+
+	dbPath := path.Join(configDir, "para.sqlite")
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		if _, err := os.Create(dbPath); err != nil {
+			return nil, err
+		}
+	}
+
+	dbInst := database.Init()
+	err := dbInst.Open(dbPath)
+
+	return dbInst, err
 }
 
 func recoverPanic() {
