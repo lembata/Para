@@ -7,7 +7,7 @@
   "forms.accountNamePlaceholder" : "Personal Bank Account",
   "forms.accountNumber" : "Account Number",
   "forms.currency" : "Currency",
-  "forms.manditoryFields" : "Manditory Fields",
+  "forms.mandatoryFields" : "mandatory Fields",
   "forms.optionalFields" : "Optional Fields",
   "forms.openingBalance" : "Opening Balance",
   "forms.openingBalanceDate" : "Opening Balance Date",

@@ -7,7 +7,7 @@
   "forms.accountNamePlaceholder" : "Лична Сметка",
   "forms.accountNumber" : "Номер на сметка",
   "forms.currency" : "Валута",
-  "forms.manditoryFields" : "Задължителни Полета",
+  "forms.mandatoryFields" : "Задължителни Полета",
   "forms.optionalFields" : "Опционални Полета",
   "forms.openingBalance" : "Начален Баланс",
   "forms.openingBalanceDate" : "Дата на Начален Баланс",
